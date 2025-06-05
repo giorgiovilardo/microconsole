@@ -6,8 +6,12 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"syscall"
 	"testing"
 )
+
+// mockableStdin is used for testing to allow mocking term.ReadPassword
+var mockableStdin = int(syscall.Stdin)
 
 // failingWriter is a writer that always returns an error
 type failingWriter struct{}

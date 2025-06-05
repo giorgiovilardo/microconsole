@@ -97,7 +97,7 @@ func (c *Console) GetPassword(prompt string) (string, error) {
 		return "", fmt.Errorf("password input requires os.Stdin, got different io.Reader")
 	}
 
-	password, err := term.ReadPassword(mockableStdin)
+	password, err := term.ReadPassword(int(syscall.Stdin))
 	if err != nil {
 		return "", fmt.Errorf("reading password: %w", err)
 	}
@@ -122,7 +122,3 @@ func GetConfirm(prompt string, defaultYes bool) (bool, error) {
 func GetPassword(prompt string) (string, error) {
 	return defaultConsole.GetPassword(prompt)
 }
-
-// mockableStdin is used for testing to allow mocking term.ReadPassword
-// This is unexported and only used internally for testability
-var mockableStdin = int(syscall.Stdin)
