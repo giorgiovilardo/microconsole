@@ -20,3 +20,17 @@ You will follow these rules:
 * Avoid useless comments. A useless comment is a comment that is at the same abstraction level of the code that follows (i.e. "this sums two numbers" over a `sum(a,b)` function)
 * use the `errors` package to wrap errors and handle them
 * use immutability and other lightweight functional programming techniques where they make sense
+* Prefer coding to interfaces
+* Prefer single method interfaces
+
+## Implementation rules
+
+* Isolate changes in separate git branches
+
+## Test rules
+
+* write mocks manually, do not rely on mock libraries and codegen
+
+## Infrastructure rules
+
+* use the new go tool feature
