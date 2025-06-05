@@ -69,3 +69,6 @@ config.local.*
 # Coverage reports
 coverage.out
 coverage.html
+
+# local tester
+cmd/
