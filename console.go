@@ -28,13 +28,9 @@ func New() *Console {
 }
 
 // NewWithStreams creates a new Console instance with the provided input and output streams.
-// This is particularly useful for testing or when you need to redirect input/output.
 func NewWithStreams(in io.Reader, out io.Writer) *Console {
 	return &Console{in, out}
 }
-
-// defaultConsole is used by the package-level functions
-var defaultConsole = New()
 
 // GetInput writes a prompt to the output and reads a line from the input.
 // It trims whitespace from the input before returning.
@@ -58,11 +54,9 @@ func (c *Console) GetInput(prompt string) (string, error) {
 // If the input is empty, it returns the defaultYes value.
 // If the input is not valid, it returns ErrInvalidConfirmation.
 func (c *Console) GetConfirm(prompt string, defaultYes bool) (bool, error) {
-	var suffix string
+	suffix := " [y/N]: "
 	if defaultYes {
 		suffix = " [Y/n]: "
-	} else {
-		suffix = " [y/N]: "
 	}
 
 	input, err := c.GetInput(prompt + suffix)
@@ -92,7 +86,6 @@ func (c *Console) GetPassword(prompt string) (string, error) {
 		return "", fmt.Errorf("writing prompt: %w", err)
 	}
 
-	// Check if input is os.Stdin, as term.ReadPassword only works with stdin
 	if c.in != os.Stdin {
 		return "", fmt.Errorf("password input requires os.Stdin, got different io.Reader")
 	}
@@ -102,23 +95,21 @@ func (c *Console) GetPassword(prompt string) (string, error) {
 		return "", fmt.Errorf("reading password: %w", err)
 	}
 
-	// Print a newline after password input
 	fmt.Fprintln(c.out)
-
 	return string(password), nil
 }
 
-// GetInput is a package-level function that delegates to the defaultConsole.
+// Package-level convenience functions using default console
+var defaultConsole = New()
+
 func GetInput(prompt string) (string, error) {
 	return defaultConsole.GetInput(prompt)
 }
 
-// GetConfirm is a package-level function that delegates to the defaultConsole.
 func GetConfirm(prompt string, defaultYes bool) (bool, error) {
 	return defaultConsole.GetConfirm(prompt, defaultYes)
 }
 
-// GetPassword is a package-level function that delegates to the defaultConsole.
 func GetPassword(prompt string) (string, error) {
 	return defaultConsole.GetPassword(prompt)
 }
