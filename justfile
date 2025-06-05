@@ -2,10 +2,6 @@
 default:
     @just --list
 
-# Run the application
-run:
-    go run .
-
 # Run all tests
 test:
     go test ./...
