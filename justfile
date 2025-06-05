@@ -10,6 +10,15 @@ test:
 race:
     go test -race ./...
 
+# Run tests in parallel with race detection
+test-parallel:
+    go test -v -race -parallel 8 ./...
+
+# Run tests with coverage report
+test-coverage:
+    go test -coverprofile=coverage.out ./...
+    go tool cover -html=coverage.out
+
 # Build the executable
 build:
     mkdir -p dist
