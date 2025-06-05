@@ -1,4 +1,4 @@
-# Microconsole
+# Microconsole 1.0.0
 
 A simple console library for Go.
 
@@ -148,15 +148,10 @@ The `GetPassword` method has some limitations:
 
 For testing code that uses passwords, consider creating an interface that abstracts the console interaction and providing a mock implementation for tests.
 
-## Edge Cases
-
-The library handles several edge cases:
-
-- Empty inputs (returns empty string for `GetInput`, uses default for `GetConfirm`)
-- EOF on input (returns appropriate error)
-- Invalid confirmation inputs (returns `ErrInvalidConfirmation`)
-- Various prompt formats (empty, special characters, very long)
-
 ## License
 
 This library is released under the MIT License.
+
+## Roadmap
+
+* validated input
