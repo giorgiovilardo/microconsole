@@ -90,7 +90,7 @@ func (c *Console) GetPassword(prompt string) (string, error) {
 		return "", fmt.Errorf("password input requires os.Stdin, got different io.Reader")
 	}
 
-	password, err := term.ReadPassword(int(syscall.Stdin))
+	password, err := term.ReadPassword(syscall.Stdin)
 	if err != nil {
 		return "", fmt.Errorf("reading password: %w", err)
 	}
