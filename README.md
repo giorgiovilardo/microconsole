@@ -1,5 +1,7 @@
 # Microconsole 1.0.0
 
+[![CI](https://github.com/giorgiovilardo/microconsole/actions/workflows/ci.yml/badge.svg)](https://github.com/giorgiovilardo/microconsole/actions/workflows/ci.yml)
+
 A simple console library for Go.
 
 ## Quick Start
