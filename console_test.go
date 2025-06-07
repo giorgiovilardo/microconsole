@@ -10,9 +10,6 @@ import (
 	"testing"
 )
 
-// mockableStdin is used for testing to allow mocking term.ReadPassword
-var mockableStdin = int(syscall.Stdin)
-
 // failingWriter is a writer that always returns an error
 type failingWriter struct{}
 
@@ -484,19 +481,19 @@ func TestConsole_SpecificErrorHandling(t *testing.T) {
 func TestPackageLevelFunctions_ReadPasswordFailure(t *testing.T) {
 	// Save original values to restore later
 	originalDefault := defaultConsole
-	originalStdin := mockableStdin
+	originalStdin := syscall.Stdin
 
 	// Cleanup after test
 	defer func() {
 		defaultConsole = originalDefault
-		mockableStdin = originalStdin
+		syscall.Stdin = originalStdin
 	}()
 
 	// Set up a custom defaultConsole
 	defaultConsole = New() // Uses os.Stdin
 
 	// Mock the file descriptor to an invalid value to force failure
-	mockableStdin = -1
+	syscall.Stdin = -1
 
 	// Call GetPassword and expect an error
 	_, err := GetPassword("Password: ")
