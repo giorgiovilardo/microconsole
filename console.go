@@ -102,14 +102,22 @@ func (c *Console) GetPassword(prompt string) (string, error) {
 // Package-level convenience functions using default console
 var defaultConsole = New()
 
+// GetInput writes a prompt to the output and reads a line from standard input.
+// It trims whitespace from the input before returning.
 func GetInput(prompt string) (string, error) {
 	return defaultConsole.GetInput(prompt)
 }
 
+// GetConfirm prompts the user for a yes/no confirmation and returns a boolean result.
+// It accepts "y", "yes", "n", "no" in any case as valid inputs.
+// If the input is empty, it returns the defaultYes value.
+// If the input is not valid, it returns ErrInvalidConfirmation.
 func GetConfirm(prompt string, defaultYes bool) (bool, error) {
 	return defaultConsole.GetConfirm(prompt, defaultYes)
 }
 
+// GetPassword prompts for a password without echoing the input to the terminal.
+// The input is read from standard input.
 func GetPassword(prompt string) (string, error) {
 	return defaultConsole.GetPassword(prompt)
 }

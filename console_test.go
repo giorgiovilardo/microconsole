@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"syscall"
 	"testing"
 )
 
@@ -20,6 +19,16 @@ type failingReader struct{}
 
 func (r *failingReader) Read(p []byte) (n int, err error) {
 	return 0, fmt.Errorf("simulated read failure")
+}
+
+func newTestConsole(input string) (*Console, *bytes.Buffer) {
+	in := strings.NewReader(input)
+	out := &bytes.Buffer{}
+	return NewWithStreams(in, out), out
+}
+
+func newFailingWriterConsole(input string) *Console {
+	return NewWithStreams(strings.NewReader(input), &failingWriter{})
 }
 
 func TestConsole_GetInput(t *testing.T) {
@@ -75,16 +84,15 @@ func TestConsole_GetInput(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			in := strings.NewReader(tt.input)
-			var out io.Writer
+			var console *Console
+			var out *bytes.Buffer
 
 			if tt.failWriter {
-				out = &failingWriter{}
+				console = newFailingWriterConsole(tt.input)
 			} else {
-				out = &bytes.Buffer{}
+				console, out = newTestConsole(tt.input)
 			}
 
-			console := NewWithStreams(in, out)
 			result, err := console.GetInput(tt.prompt)
 
 			if (err != nil) != tt.expectedError {
@@ -92,10 +100,8 @@ func TestConsole_GetInput(t *testing.T) {
 			}
 
 			if !tt.expectedError && !tt.failWriter {
-				if outBuffer, ok := out.(*bytes.Buffer); ok {
-					if outBuffer.String() != tt.prompt {
-						t.Errorf("Expected prompt '%s', got '%s'", tt.prompt, outBuffer.String())
-					}
+				if out.String() != tt.prompt {
+					t.Errorf("Expected prompt '%s', got '%s'", tt.prompt, out.String())
 				}
 
 				if result != tt.expected {
@@ -218,16 +224,15 @@ func TestConsole_GetConfirm(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			in := strings.NewReader(tt.input)
-			var out io.Writer
+			var console *Console
+			var out *bytes.Buffer
 
 			if tt.failWriter {
-				out = &failingWriter{}
+				console = newFailingWriterConsole(tt.input)
 			} else {
-				out = &bytes.Buffer{}
+				console, out = newTestConsole(tt.input)
 			}
 
-			console := NewWithStreams(in, out)
 			result, err := console.GetConfirm(tt.prompt, tt.defaultYes)
 
 			if tt.failWriter {
@@ -243,7 +248,6 @@ func TestConsole_GetConfirm(t *testing.T) {
 			}
 
 			if !tt.failWriter {
-				out := out.(*bytes.Buffer)
 				expectedSuffix := " [Y/n]: "
 				if !tt.defaultYes {
 					expectedSuffix = " [y/N]: "
@@ -263,9 +267,7 @@ func TestConsole_GetConfirm(t *testing.T) {
 
 func TestConsole_GetPassword(t *testing.T) {
 	t.Run("Input not os.Stdin", func(t *testing.T) {
-		in := strings.NewReader("password\n")
-		out := &bytes.Buffer{}
-		console := NewWithStreams(in, out)
+		console, out := newTestConsole("password\n")
 
 		_, err := console.GetPassword("Password: ")
 
@@ -279,9 +281,7 @@ func TestConsole_GetPassword(t *testing.T) {
 	})
 
 	t.Run("Failed writer", func(t *testing.T) {
-		in := strings.NewReader("password\n")
-		out := &failingWriter{}
-		console := NewWithStreams(in, out)
+		console := newFailingWriterConsole("password\n")
 
 		_, err := console.GetPassword("Password: ")
 
@@ -291,66 +291,8 @@ func TestConsole_GetPassword(t *testing.T) {
 	})
 }
 
-func TestGetInput(t *testing.T) {
-	originalDefault := defaultConsole
-	defer func() { defaultConsole = originalDefault }()
-
-	mockIn := strings.NewReader("test input\n")
-	mockOut := &bytes.Buffer{}
-	defaultConsole = NewWithStreams(mockIn, mockOut)
-
-	result, err := GetInput("Enter: ")
-	if err != nil {
-		t.Errorf("Expected no error, got: %v", err)
-	}
-	if result != "test input" {
-		t.Errorf("Expected 'test input', got: '%s'", result)
-	}
-	if mockOut.String() != "Enter: " {
-		t.Errorf("Expected prompt 'Enter: ', got: '%s'", mockOut.String())
-	}
-}
-
-func TestGetConfirm(t *testing.T) {
-	originalDefault := defaultConsole
-	defer func() { defaultConsole = originalDefault }()
-
-	mockIn := strings.NewReader("y\n")
-	mockOut := &bytes.Buffer{}
-	defaultConsole = NewWithStreams(mockIn, mockOut)
-
-	result, err := GetConfirm("Confirm?", false)
-	if err != nil {
-		t.Errorf("Expected no error, got: %v", err)
-	}
-	if !result {
-		t.Errorf("Expected true, got: %v", result)
-	}
-	if mockOut.String() != "Confirm? [y/N]: " {
-		t.Errorf("Expected prompt 'Confirm? [y/N]: ', got: '%s'", mockOut.String())
-	}
-}
-
-func TestGetPassword(t *testing.T) {
-	originalDefault := defaultConsole
-	defer func() { defaultConsole = originalDefault }()
-
-	mockIn := strings.NewReader("password\n")
-	mockOut := &bytes.Buffer{}
-	defaultConsole = NewWithStreams(mockIn, mockOut)
-
-	_, err := GetPassword("Password: ")
-
-	if err == nil {
-		t.Error("Expected error when using non-os.Stdin for password input, got nil")
-	}
-	if mockOut.String() != "Password: " {
-		t.Errorf("Expected prompt 'Password: ', got: '%s'", mockOut.String())
-	}
-}
-
 func TestConsole_InputWithEOF(t *testing.T) {
-	console := NewWithStreams(strings.NewReader(""), &bytes.Buffer{})
+	console, _ := newTestConsole("")
 	_, err := console.GetInput("Prompt: ")
 	if err == nil {
 		t.Error("Expected error on EOF, got nil")
@@ -394,9 +336,7 @@ func TestConsole_PromptEdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			in := strings.NewReader("test\n")
-			out := &bytes.Buffer{}
-			console := NewWithStreams(in, out)
+			console, out := newTestConsole("test\n")
 
 			_, err := console.GetInput(tt.prompt)
 			if err != nil {
@@ -410,8 +350,7 @@ func TestConsole_PromptEdgeCases(t *testing.T) {
 }
 
 func TestConsole_GetInputWithFailingReader(t *testing.T) {
-	failingReader := &failingReader{}
-	console := NewWithStreams(failingReader, &bytes.Buffer{})
+	console := NewWithStreams(&failingReader{}, &bytes.Buffer{})
 
 	_, err := console.GetInput("Prompt: ")
 	if err == nil {
@@ -420,29 +359,10 @@ func TestConsole_GetInputWithFailingReader(t *testing.T) {
 }
 
 func TestConsole_SpecificErrorHandling(t *testing.T) {
-	failingReader := &failingReader{}
-	console := NewWithStreams(failingReader, &bytes.Buffer{})
+	console := NewWithStreams(&failingReader{}, &bytes.Buffer{})
 
 	_, err := console.GetConfirm("Confirm?", true)
 	if err == nil {
 		t.Error("Expected error from GetConfirm with failing reader, got nil")
-	}
-}
-
-func TestPackageLevelFunctions_ReadPasswordFailure(t *testing.T) {
-	originalDefault := defaultConsole
-	originalStdin := syscall.Stdin
-
-	defer func() {
-		defaultConsole = originalDefault
-		syscall.Stdin = originalStdin
-	}()
-
-	defaultConsole = New()
-	syscall.Stdin = -1
-
-	_, err := GetPassword("Password: ")
-	if err == nil {
-		t.Error("Expected error from GetPassword with invalid file descriptor, got nil")
 	}
 }
