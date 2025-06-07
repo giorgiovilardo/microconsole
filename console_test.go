@@ -145,6 +145,18 @@ func TestConsole_GetConfirm_Success(t *testing.T) {
 	}
 }
 
+func TestConsole_GetConfirm_AddsSuffixToPrompt(t *testing.T) {
+	console := newTestConsole(testConfirmInput)
+	console.GetConfirm(testPrompt, true)
+	if !strings.HasSuffix(console.out.(*bytes.Buffer).String(), " [Y/n]: ") {
+		t.Error("Expected prompt to end with [Y/n]:")
+	}
+	console.GetConfirm(testPrompt, false)
+	if !strings.HasSuffix(console.out.(*bytes.Buffer).String(), " [y/N]: ") {
+		t.Error("Expected prompt to end with [y/N]:")
+	}
+}
+
 func TestConsole_GetConfirm_DefaultValues(t *testing.T) {
 	tests := []struct {
 		name       string
