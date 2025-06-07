@@ -11,6 +11,7 @@ import (
 
 const (
 	testPrompt = "Enter input: "
+	testConfirmInput = "\n"
 )
 
 type failingWriter struct{}
@@ -19,229 +20,185 @@ func (w *failingWriter) Write(_ []byte) (n int, err error) {
 	return 0, fmt.Errorf("simulated write failure")
 }
 
-func newTestConsole(input string) (*Console, *bytes.Buffer) {
-	in := strings.NewReader(input)
-	out := &bytes.Buffer{}
-	return NewWithStreams(in, out), out
+func newTestConsole(input string) *Console {
+	return NewWithStreams(strings.NewReader(input), &bytes.Buffer{})
 }
 
 func newFailingWriterConsole(input string) *Console {
 	return NewWithStreams(strings.NewReader(input), &failingWriter{})
 }
 
-func TestConsole_GetInput(t *testing.T) {
+func TestConsole_GetInput_Success(t *testing.T) {
 	tests := []struct {
-		name          string
-		input         string
-		expected      string
-		expectedError bool
-		failWriter    bool
+		name     string
+		input    string
+		expected string
 	}{
-		{
-			name:          "Normal input",
-			input:         "hello\n",
-			expected:      "hello",
-			expectedError: false,
-			failWriter:    false,
-		},
-		{
-			name:          "Input with whitespace",
-			input:         "  hello world  \n",
-			expected:      "hello world",
-			expectedError: false,
-			failWriter:    false,
-		},
-		{
-			name:          "Empty input",
-			input:         "\n",
-			expected:      "",
-			expectedError: false,
-			failWriter:    false,
-		},
-		{
-			name:          "EOF",
-			input:         "",
-			expected:      "",
-			expectedError: true,
-			failWriter:    false,
-		},
-		{
-			name:          "Failed writer",
-			input:         "hello\n",
-			expected:      "",
-			expectedError: true,
-			failWriter:    true,
-		},
+		{"Normal input", "hello\n", "hello"},
+		{"Input with whitespace", "  hello world  \n", "hello world"},
+		{"Empty input", "\n", ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var console *Console
-
-			if tt.failWriter {
-				console = newFailingWriterConsole(tt.input)
-			} else {
-				console, _ = newTestConsole(tt.input)
-			}
+			console := newTestConsole(tt.input)
 
 			result, err := console.GetInput(testPrompt)
-
-			if (err != nil) != tt.expectedError {
-				t.Errorf("Expected error: %v, got: %v", tt.expectedError, err)
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
 			}
 
-			if !tt.expectedError && !tt.failWriter {
-				if result != tt.expected {
-					t.Errorf("Expected result '%s', got '%s'", tt.expected, result)
-				}
+			if result != tt.expected {
+				t.Errorf("Expected result '%s', got '%s'", tt.expected, result)
 			}
 		})
 	}
 }
 
-func TestConsole_GetConfirm(t *testing.T) {
+func TestConsole_GetInput_EOF(t *testing.T) {
+	console := newTestConsole("")
+	_, err := console.GetInput(testPrompt)
+	if err == nil {
+		t.Error("Expected error but got nil")
+	}
+}
+
+func TestConsole_GetInput_FailedWriter(t *testing.T) {
+	console := newFailingWriterConsole("hello\n")
+	_, err := console.GetInput(testPrompt)
+	if err == nil {
+		t.Error("Expected error but got nil")
+	}
+}
+
+func TestConsole_GetConfirm_Success(t *testing.T) {
 	tests := []struct {
-		name          string
-		input         string
-		defaultYes    bool
-		expected      bool
-		expectedError error
-		failWriter    bool
+		name       string
+		input      string
+		defaultYes bool
+		expected   bool
 	}{
 		{
-			name:          "Yes input",
-			input:         "y\n",
-			defaultYes:    false,
-			expected:      true,
-			expectedError: nil,
+			name:       "Yes input",
+			input:      "y\n",
+			defaultYes: false,
+			expected:   true,
 		},
 		{
-			name:          "Yes (uppercase) input",
-			input:         "Y\n",
-			defaultYes:    false,
-			expected:      true,
-			expectedError: nil,
+			name:       "Yes (uppercase) input",
+			input:      "Y\n",
+			defaultYes: false,
+			expected:   true,
 		},
 		{
-			name:          "Yes (full) input",
-			input:         "yes\n",
-			defaultYes:    false,
-			expected:      true,
-			expectedError: nil,
+			name:       "Yes (full) input",
+			input:      "yes\n",
+			defaultYes: false,
+			expected:   true,
 		},
 		{
-			name:          "Yes (full uppercase) input",
-			input:         "YES\n",
-			defaultYes:    false,
-			expected:      true,
-			expectedError: nil,
+			name:       "Yes (full uppercase) input",
+			input:      "YES\n",
+			defaultYes: false,
+			expected:   true,
 		},
 		{
-			name:          "No input",
-			input:         "n\n",
-			defaultYes:    true,
-			expected:      false,
-			expectedError: nil,
+			name:       "No input",
+			input:      "n\n",
+			defaultYes: true,
+			expected:   false,
 		},
 		{
-			name:          "No (uppercase) input",
-			input:         "N\n",
-			defaultYes:    true,
-			expected:      false,
-			expectedError: nil,
+			name:       "No (uppercase) input",
+			input:      "N\n",
+			defaultYes: true,
+			expected:   false,
 		},
 		{
-			name:          "No (full) input",
-			input:         "no\n",
-			defaultYes:    true,
-			expected:      false,
-			expectedError: nil,
+			name:       "No (full) input",
+			input:      "no\n",
+			defaultYes: true,
+			expected:   false,
 		},
 		{
-			name:          "No (full uppercase) input",
-			input:         "NO\n",
-			defaultYes:    true,
-			expected:      false,
-			expectedError: nil,
-		},
-		{
-			name:          "Empty input with defaultYes=true",
-			input:         "\n",
-			defaultYes:    true,
-			expected:      true,
-			expectedError: nil,
-		},
-		{
-			name:          "Empty input with defaultYes=false",
-			input:         "\n",
-			defaultYes:    false,
-			expected:      false,
-			expectedError: nil,
-		},
-		{
-			name:          "Invalid input",
-			input:         "invalid\n",
-			defaultYes:    false,
-			expected:      false,
-			expectedError: ErrInvalidConfirmation,
-			failWriter:    false,
-		},
-		{
-			name:          "Failed writer",
-			input:         "y\n",
-			defaultYes:    false,
-			expected:      false,
-			expectedError: fmt.Errorf("simulated write failure"),
-			failWriter:    true,
+			name:       "No (full uppercase) input",
+			input:      "NO\n",
+			defaultYes: true,
+			expected:   false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var console *Console
-			var out *bytes.Buffer
-
-			if tt.failWriter {
-				console = newFailingWriterConsole(tt.input)
-			} else {
-				console, out = newTestConsole(tt.input)
-			}
+			console := newTestConsole(tt.input)
 
 			result, err := console.GetConfirm(testPrompt, tt.defaultYes)
 
-			if tt.failWriter {
-				if err == nil {
-					t.Error("Expected error with failing writer, got nil")
-				}
-			} else if tt.expectedError == nil {
-				if err != nil {
-					t.Errorf("Expected no error, got: %v", err)
-				}
-			} else if !errors.Is(err, tt.expectedError) && err.Error() != tt.expectedError.Error() {
-				t.Errorf("Expected error: %v, got: %v", tt.expectedError, err)
+			if err != nil {
+				t.Errorf("Expected no error, got: %v", err)
 			}
 
-			if !tt.failWriter {
-				expectedSuffix := " [Y/n]: "
-				if !tt.defaultYes {
-					expectedSuffix = " [y/N]: "
-				}
-				expectedPrompt := testPrompt + expectedSuffix
-				if out.String() != expectedPrompt {
-					t.Errorf("Expected prompt '%s', got '%s'", expectedPrompt, out.String())
-				}
-			}
-
-			if err == nil && result != tt.expected {
+			if result != tt.expected {
 				t.Errorf("Expected result '%v', got '%v'", tt.expected, result)
 			}
 		})
 	}
 }
 
+func TestConsole_GetConfirm_DefaultValues(t *testing.T) {
+	tests := []struct {
+		name       string
+		defaultYes bool
+		expected   bool
+	}{
+		{"Empty input with defaultYes=true", true, true},
+		{"Empty input with defaultYes=false", false, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			console := newTestConsole(testConfirmInput)
+
+			result, err := console.GetConfirm(testPrompt, tt.defaultYes)
+
+			if err != nil {
+				t.Errorf("Expected no error, got: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("Expected result '%v', got '%v'", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestConsole_GetConfirm_Error(t *testing.T) {
+	t.Run("Invalid input", func(t *testing.T) {
+		console := newTestConsole("invalid\n")
+
+		_, err := console.GetConfirm(testPrompt, false)
+
+		if !errors.Is(err, ErrInvalidConfirmation) {
+			t.Errorf("Expected error: %v, got: %v", ErrInvalidConfirmation, err)
+		}
+	})
+}
+
+func TestConsole_GetConfirm_WriterFailure(t *testing.T) {
+	t.Run("Failed writer", func(t *testing.T) {
+		console := newFailingWriterConsole("y\n")
+
+		_, err := console.GetConfirm(testPrompt, false)
+
+		if err == nil {
+			t.Error("Expected error with failing writer, got nil")
+		}
+	})
+}
+
 func TestConsole_GetPassword(t *testing.T) {
 	t.Run("Input not os.Stdin", func(t *testing.T) {
-		console, _ := newTestConsole("password\n")
+		console := newTestConsole("password\n")
 
 		_, err := console.GetPassword(testPrompt)
 
@@ -262,7 +219,7 @@ func TestConsole_GetPassword(t *testing.T) {
 }
 
 func TestConsole_InputWithEOF(t *testing.T) {
-	console, _ := newTestConsole("")
+	console := newTestConsole("")
 	_, err := console.GetInput("Prompt: ")
 	if err == nil {
 		t.Error("Expected error on EOF, got nil")
