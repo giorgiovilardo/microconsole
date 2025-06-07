@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	testPrompt = "Enter input: "
+	testPrompt       = "Enter input: "
 	testConfirmInput = "\n"
 )
 
