@@ -21,8 +21,6 @@ func (w *failingWriter) Write(_ []byte) (n int, err error) {
 }
 
 func TestConsole_GetInput(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
 		name          string
 		input         string
@@ -76,8 +74,6 @@ func TestConsole_GetInput(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // Capture range variable for parallel subtests
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
 			// Create a Console with a string reader for input and appropriate output
 			in := strings.NewReader(tt.input)
 			var out io.Writer
@@ -118,8 +114,6 @@ func TestConsole_GetInput(t *testing.T) {
 }
 
 func TestConsole_GetConfirm(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
 		name          string
 		input         string
@@ -232,8 +226,6 @@ func TestConsole_GetConfirm(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // Capture range variable for parallel subtests
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
 			// Create a Console with a string reader for input and appropriate output
 			in := strings.NewReader(tt.input)
 			var out io.Writer
@@ -285,11 +277,7 @@ func TestConsole_GetConfirm(t *testing.T) {
 }
 
 func TestConsole_GetPassword(t *testing.T) {
-	t.Parallel()
-
 	t.Run("Input not os.Stdin", func(t *testing.T) {
-		t.Parallel()
-
 		// Create a Console with a non-os.Stdin reader
 		in := strings.NewReader("password\n")
 		out := &bytes.Buffer{}
@@ -310,8 +298,6 @@ func TestConsole_GetPassword(t *testing.T) {
 	})
 
 	t.Run("Failed writer", func(t *testing.T) {
-		t.Parallel()
-
 		// Create a Console with a failing writer
 		in := strings.NewReader("password\n")
 		out := &failingWriter{}
@@ -331,8 +317,6 @@ func TestConsole_GetPassword(t *testing.T) {
 }
 
 func TestGetInput(t *testing.T) {
-	t.Parallel()
-
 	// Save and restore defaultConsole
 	originalDefault := defaultConsole
 	defer func() { defaultConsole = originalDefault }()
@@ -357,8 +341,6 @@ func TestGetInput(t *testing.T) {
 }
 
 func TestGetConfirm(t *testing.T) {
-	t.Parallel()
-
 	// Save and restore defaultConsole
 	originalDefault := defaultConsole
 	defer func() { defaultConsole = originalDefault }()
@@ -383,8 +365,6 @@ func TestGetConfirm(t *testing.T) {
 }
 
 func TestGetPassword(t *testing.T) {
-	t.Parallel()
-
 	// Save and restore defaultConsole
 	originalDefault := defaultConsole
 	defer func() { defaultConsole = originalDefault }()
@@ -409,8 +389,6 @@ func TestGetPassword(t *testing.T) {
 // Test edge cases
 
 func TestConsole_InputWithEOF(t *testing.T) {
-	t.Parallel()
-
 	console := NewWithStreams(strings.NewReader(""), &bytes.Buffer{})
 	_, err := console.GetInput("Prompt: ")
 	if err == nil {
@@ -422,8 +400,6 @@ func TestConsole_InputWithEOF(t *testing.T) {
 }
 
 func TestConsole_NilReader(t *testing.T) {
-	t.Parallel()
-
 	defer func() {
 		if r := recover(); r == nil {
 			t.Error("Expected panic with nil reader, but code didn't panic")
@@ -435,8 +411,6 @@ func TestConsole_NilReader(t *testing.T) {
 }
 
 func TestConsole_NilWriter(t *testing.T) {
-	t.Parallel()
-
 	defer func() {
 		if r := recover(); r == nil {
 			t.Error("Expected panic with nil writer, but code didn't panic")
@@ -448,8 +422,6 @@ func TestConsole_NilWriter(t *testing.T) {
 }
 
 func TestConsole_PromptEdgeCases(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
 		name   string
 		prompt string
@@ -462,8 +434,6 @@ func TestConsole_PromptEdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // Capture range variable for parallel subtests
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
 			in := strings.NewReader("test\n")
 			out := &bytes.Buffer{}
 			console := NewWithStreams(in, out)
@@ -557,8 +527,6 @@ func ExampleConsole_GetPassword() {
 
 // TestConsole_GetInputWithFailingReader tests GetInput with a reader that fails
 func TestConsole_GetInputWithFailingReader(t *testing.T) {
-	t.Parallel()
-
 	// Create a reader that always fails
 	failingReader := &failingReader{}
 	console := NewWithStreams(failingReader, &bytes.Buffer{})
@@ -578,8 +546,6 @@ func (r *failingReader) Read(p []byte) (n int, err error) {
 
 // TestConsole_SpecificErrorHandling tests specific error handling scenarios
 func TestConsole_SpecificErrorHandling(t *testing.T) {
-	t.Parallel()
-
 	// Test that errors from GetInput are properly passed through in GetConfirm
 	failingReader := &failingReader{}
 	console := NewWithStreams(failingReader, &bytes.Buffer{})
@@ -592,8 +558,6 @@ func TestConsole_SpecificErrorHandling(t *testing.T) {
 
 // TestPackageLevelFunctions_ReadPasswordFailure tests the package-level GetPassword function with a mock that fails
 func TestPackageLevelFunctions_ReadPasswordFailure(t *testing.T) {
-	t.Parallel()
-
 	// Save original values to restore later
 	originalDefault := defaultConsole
 	originalStdin := mockableStdin
