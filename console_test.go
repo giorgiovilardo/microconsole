@@ -10,11 +10,16 @@ import (
 	"testing"
 )
 
-// failingWriter is a writer that always returns an error
 type failingWriter struct{}
 
 func (w *failingWriter) Write(_ []byte) (n int, err error) {
 	return 0, fmt.Errorf("simulated write failure")
+}
+
+type failingReader struct{}
+
+func (r *failingReader) Read(p []byte) (n int, err error) {
+	return 0, fmt.Errorf("simulated read failure")
 }
 
 func TestConsole_GetInput(t *testing.T) {
@@ -24,7 +29,7 @@ func TestConsole_GetInput(t *testing.T) {
 		prompt        string
 		expected      string
 		expectedError bool
-		failWriter    bool // This will create a test case where the output writer fails
+		failWriter    bool
 	}{
 		{
 			name:          "Normal input",
@@ -69,39 +74,30 @@ func TestConsole_GetInput(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt // Capture range variable for parallel subtests
 		t.Run(tt.name, func(t *testing.T) {
-			// Create a Console with a string reader for input and appropriate output
 			in := strings.NewReader(tt.input)
 			var out io.Writer
 
 			if tt.failWriter {
-				// Create a writer that always fails
 				out = &failingWriter{}
 			} else {
 				out = &bytes.Buffer{}
 			}
 
 			console := NewWithStreams(in, out)
-
-			// Call GetInput
 			result, err := console.GetInput(tt.prompt)
 
-			// Check the error
 			if (err != nil) != tt.expectedError {
 				t.Errorf("Expected error: %v, got: %v", tt.expectedError, err)
 			}
 
-			// If no error expected and not using failing writer, check the output and result
 			if !tt.expectedError && !tt.failWriter {
-				// Check if the prompt was written correctly
 				if outBuffer, ok := out.(*bytes.Buffer); ok {
 					if outBuffer.String() != tt.prompt {
 						t.Errorf("Expected prompt '%s', got '%s'", tt.prompt, outBuffer.String())
 					}
 				}
 
-				// Check the result
 				if result != tt.expected {
 					t.Errorf("Expected result '%s', got '%s'", tt.expected, result)
 				}
@@ -221,25 +217,19 @@ func TestConsole_GetConfirm(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt // Capture range variable for parallel subtests
 		t.Run(tt.name, func(t *testing.T) {
-			// Create a Console with a string reader for input and appropriate output
 			in := strings.NewReader(tt.input)
 			var out io.Writer
 
 			if tt.failWriter {
-				// Create a writer that always fails
 				out = &failingWriter{}
 			} else {
 				out = &bytes.Buffer{}
 			}
 
 			console := NewWithStreams(in, out)
-
-			// Call GetConfirm
 			result, err := console.GetConfirm(tt.prompt, tt.defaultYes)
 
-			// Check the error behavior
 			if tt.failWriter {
 				if err == nil {
 					t.Error("Expected error with failing writer, got nil")
@@ -252,7 +242,6 @@ func TestConsole_GetConfirm(t *testing.T) {
 				t.Errorf("Expected error: %v, got: %v", tt.expectedError, err)
 			}
 
-			// If using normal buffer, check the prompt formatting
 			if !tt.failWriter {
 				out := out.(*bytes.Buffer)
 				expectedSuffix := " [Y/n]: "
@@ -265,7 +254,6 @@ func TestConsole_GetConfirm(t *testing.T) {
 				}
 			}
 
-			// Check the result
 			if err == nil && result != tt.expected {
 				t.Errorf("Expected result '%v', got '%v'", tt.expected, result)
 			}
@@ -275,57 +263,43 @@ func TestConsole_GetConfirm(t *testing.T) {
 
 func TestConsole_GetPassword(t *testing.T) {
 	t.Run("Input not os.Stdin", func(t *testing.T) {
-		// Create a Console with a non-os.Stdin reader
 		in := strings.NewReader("password\n")
 		out := &bytes.Buffer{}
 		console := NewWithStreams(in, out)
 
-		// Call GetPassword
 		_, err := console.GetPassword("Password: ")
 
-		// Check that we get an error
 		if err == nil {
 			t.Error("Expected error when using non-os.Stdin for password input, got nil")
 		}
 
-		// Check the prompt
 		if out.String() != "Password: " {
 			t.Errorf("Expected prompt 'Password: ', got '%s'", out.String())
 		}
 	})
 
 	t.Run("Failed writer", func(t *testing.T) {
-		// Create a Console with a failing writer
 		in := strings.NewReader("password\n")
 		out := &failingWriter{}
 		console := NewWithStreams(in, out)
 
-		// Call GetPassword
 		_, err := console.GetPassword("Password: ")
 
-		// Check that we get an error
 		if err == nil {
 			t.Error("Expected error when writer fails, got nil")
 		}
 	})
-
-	// Note: We can't easily test the actual password reading since it requires terminal interaction
-	// This would typically be tested manually or with integration tests
 }
 
 func TestGetInput(t *testing.T) {
-	// Save and restore defaultConsole
 	originalDefault := defaultConsole
 	defer func() { defaultConsole = originalDefault }()
 
-	// Mock defaultConsole
 	mockIn := strings.NewReader("test input\n")
 	mockOut := &bytes.Buffer{}
 	defaultConsole = NewWithStreams(mockIn, mockOut)
 
-	// Call the package function
 	result, err := GetInput("Enter: ")
-	// Verify it worked properly
 	if err != nil {
 		t.Errorf("Expected no error, got: %v", err)
 	}
@@ -338,18 +312,14 @@ func TestGetInput(t *testing.T) {
 }
 
 func TestGetConfirm(t *testing.T) {
-	// Save and restore defaultConsole
 	originalDefault := defaultConsole
 	defer func() { defaultConsole = originalDefault }()
 
-	// Mock defaultConsole
 	mockIn := strings.NewReader("y\n")
 	mockOut := &bytes.Buffer{}
 	defaultConsole = NewWithStreams(mockIn, mockOut)
 
-	// Call the package function
 	result, err := GetConfirm("Confirm?", false)
-	// Verify it worked properly
 	if err != nil {
 		t.Errorf("Expected no error, got: %v", err)
 	}
@@ -362,19 +332,15 @@ func TestGetConfirm(t *testing.T) {
 }
 
 func TestGetPassword(t *testing.T) {
-	// Save and restore defaultConsole
 	originalDefault := defaultConsole
 	defer func() { defaultConsole = originalDefault }()
 
-	// Mock defaultConsole with a non-stdin reader
 	mockIn := strings.NewReader("password\n")
 	mockOut := &bytes.Buffer{}
 	defaultConsole = NewWithStreams(mockIn, mockOut)
 
-	// Call the package function
 	_, err := GetPassword("Password: ")
 
-	// We expect an error since we're not using os.Stdin
 	if err == nil {
 		t.Error("Expected error when using non-os.Stdin for password input, got nil")
 	}
@@ -382,8 +348,6 @@ func TestGetPassword(t *testing.T) {
 		t.Errorf("Expected prompt 'Password: ', got: '%s'", mockOut.String())
 	}
 }
-
-// Test edge cases
 
 func TestConsole_InputWithEOF(t *testing.T) {
 	console := NewWithStreams(strings.NewReader(""), &bytes.Buffer{})
@@ -429,7 +393,6 @@ func TestConsole_PromptEdgeCases(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt // Capture range variable for parallel subtests
 		t.Run(tt.name, func(t *testing.T) {
 			in := strings.NewReader("test\n")
 			out := &bytes.Buffer{}
@@ -446,9 +409,7 @@ func TestConsole_PromptEdgeCases(t *testing.T) {
 	}
 }
 
-// TestConsole_GetInputWithFailingReader tests GetInput with a reader that fails
 func TestConsole_GetInputWithFailingReader(t *testing.T) {
-	// Create a reader that always fails
 	failingReader := &failingReader{}
 	console := NewWithStreams(failingReader, &bytes.Buffer{})
 
@@ -458,16 +419,7 @@ func TestConsole_GetInputWithFailingReader(t *testing.T) {
 	}
 }
 
-// failingReader is a reader that always returns an error
-type failingReader struct{}
-
-func (r *failingReader) Read(p []byte) (n int, err error) {
-	return 0, fmt.Errorf("simulated read failure")
-}
-
-// TestConsole_SpecificErrorHandling tests specific error handling scenarios
 func TestConsole_SpecificErrorHandling(t *testing.T) {
-	// Test that errors from GetInput are properly passed through in GetConfirm
 	failingReader := &failingReader{}
 	console := NewWithStreams(failingReader, &bytes.Buffer{})
 
@@ -477,25 +429,18 @@ func TestConsole_SpecificErrorHandling(t *testing.T) {
 	}
 }
 
-// TestPackageLevelFunctions_ReadPasswordFailure tests the package-level GetPassword function with a mock that fails
 func TestPackageLevelFunctions_ReadPasswordFailure(t *testing.T) {
-	// Save original values to restore later
 	originalDefault := defaultConsole
 	originalStdin := syscall.Stdin
 
-	// Cleanup after test
 	defer func() {
 		defaultConsole = originalDefault
 		syscall.Stdin = originalStdin
 	}()
 
-	// Set up a custom defaultConsole
-	defaultConsole = New() // Uses os.Stdin
-
-	// Mock the file descriptor to an invalid value to force failure
+	defaultConsole = New()
 	syscall.Stdin = -1
 
-	// Call GetPassword and expect an error
 	_, err := GetPassword("Password: ")
 	if err == nil {
 		t.Error("Expected error from GetPassword with invalid file descriptor, got nil")
